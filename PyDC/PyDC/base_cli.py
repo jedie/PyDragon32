@@ -78,9 +78,6 @@ class Base_CLI(object):
         self.verbosity = args.verbosity
         self.logfile = args.logfile
 
-        highest_level = min([self.logfile, self.verbosity])
-        self.log.setLevel(highest_level)
-
         formatter = logging.Formatter(args.log_format)
 
         if self.logfile > 0 and self.logfilename:
@@ -94,6 +91,9 @@ class Base_CLI(object):
             handler.level = self.verbosity
             handler.setFormatter(formatter)
             self.log.addHandler(handler)
+
+        highest_level = min([self.logfile, self.verbosity])
+        self.log.setLevel(highest_level)
 
         self.log.debug(" ".join(sys.argv))
 

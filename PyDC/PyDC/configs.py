@@ -16,7 +16,7 @@ class BaseConfig(object):
     """ shared config values """
 
     # For writing WAVE files:
-    FRAMERATE = 22050
+    FRAMERATE = 44100
     SAMPLEWIDTH = 2 # 1 for 8-bit, 2 for 16-bit, 4 for 32-bit samples
     VOLUME_RATIO = 90 # "Loundness" in percent of the created wave file
 
@@ -75,7 +75,9 @@ class Dragon32Config(BaseConfig):
     # For reading WAVE files:
     BIT_NUL_HZ = 1200 # "0" is a single cycle at 1200 Hz
     BIT_ONE_HZ = 2400 # "1" is a single cycle at 2400 Hz
-    HZ_VARIATION = 450 # How much Hz can signal scatter to match 1 or 0 bit ?
+    # see: http://five.pairlist.net/pipermail/coco/2013-August/070879.html
+    HZ_DRIFT = -200 # offset for ground signal
+    HZ_VARIATION = 500 # How much Hz can signal scatter to match 1 or 0 bit ?
 
     MIN_VOLUME_RATIO = 5 # percent volume to ignore sample
     AVG_COUNT = 0 # How many samples should be merged into a average value?
@@ -129,3 +131,20 @@ if __name__ == "__main__":
         verbose=False
         # verbose=True
     )
+
+    # test via CLI:
+
+    import sys, subprocess
+
+    # bas -> wav
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+        "../test_files/HelloWorld1.bas", "../test.wav"
+    ])
+
+    # wav -> bas
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+        "../test.wav", "../test.bas",
+#         "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
+    ])

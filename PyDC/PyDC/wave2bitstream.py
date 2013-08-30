@@ -73,7 +73,7 @@ class Wave2Bitstream(WaveBase):
         self.cfg = cfg
 
         self.half_sinus = False # in trigger yield the full cycle
-        self.frame_no = 0 # Number of frames used for trigger
+        self.wave_pos = 0 # Number of frames used for trigger
         self.wave_pos = 0 # Absolute position in the frame stream
 
         assert cfg.END_COUNT > 0 # Sample count that must be pos/neg at once
@@ -105,19 +105,6 @@ class Wave2Bitstream(WaveBase):
         self.min_volume = int(round(self.max_value * cfg.MIN_VOLUME_RATIO / 100))
         print "Ignore sample lower than %.1f%% = %i" % (cfg.MIN_VOLUME_RATIO, self.min_volume)
 
-        # build min/max Hz values
-        self.bit_nul_min_hz = cfg.BIT_NUL_HZ - cfg.HZ_VARIATION
-        self.bit_nul_max_hz = cfg.BIT_NUL_HZ + cfg.HZ_VARIATION
-
-        self.bit_one_min_hz = cfg.BIT_ONE_HZ - cfg.HZ_VARIATION
-        self.bit_one_max_hz = cfg.BIT_ONE_HZ + cfg.HZ_VARIATION
-        print "bit-0 in %sHz - %sHz  |  bit-1 in %sHz - %sHz" % (
-            self.bit_nul_min_hz, self.bit_nul_max_hz,
-            self.bit_one_min_hz, self.bit_one_max_hz,
-        )
-        assert self.bit_nul_max_hz < self.bit_one_min_hz, "hz variation %sHz to big!" % (
-            ((self.bit_nul_max_hz - self.bit_one_min_hz) / 2) + 1
-        )
 
         # create the generator chain:
 
@@ -126,8 +113,10 @@ class Wave2Bitstream(WaveBase):
 
         if cfg.AVG_COUNT > 1:
             # merge samples to a average sample
-            log.debug("Merge %s audio sample to one average sample" % self.avg_count)
-            self.avg_wave_values_generator = self.iter_avg_wave_values(self.wave_values_generator)
+            log.debug("Merge %s audio sample to one average sample" % cfg.AVG_COUNT)
+            self.avg_wave_values_generator = self.iter_avg_wave_values(
+                self.wave_values_generator, cfg.AVG_COUNT
+            )
             # trigger sinus cycle
             self.iter_trigger_generator = self.iter_trigger(self.avg_wave_values_generator)
         else:
@@ -166,10 +155,6 @@ class Wave2Bitstream(WaveBase):
         # It's a tuple like: [(frame_no, duration)...]
 
         test_durations = list(test_durations)
-
-        # Create only a duration list:
-        test_durations = [i[1] for i in test_durations]
-#         test_durations = itertools.imap(lambda x: x[1], test_durations)
 
         diff1, diff2 = diff_info(test_durations)
         log.debug("sync diff info: %i vs. %i" % (diff1, diff2))
@@ -217,17 +202,46 @@ class Wave2Bitstream(WaveBase):
         nul_hz_avg = None
         nul_hz_max = 0
 
-        bit_count = 0
+        # build min/max Hz values
+        self.cfg.BIT_NUL_HZ += self.cfg.HZ_DRIFT
+        self.cfg.BIT_ONE_HZ += self.cfg.HZ_DRIFT
 
-        frame_no = False
-        for frame_no, duration in iter_duration_generator:
-#             if frame_no > 500:
+        bit_nul_min_hz = self.cfg.BIT_NUL_HZ - self.cfg.HZ_VARIATION
+        bit_nul_max_hz = self.cfg.BIT_NUL_HZ + self.cfg.HZ_VARIATION
+
+        bit_one_min_hz = self.cfg.BIT_ONE_HZ - self.cfg.HZ_VARIATION
+        bit_one_max_hz = self.cfg.BIT_ONE_HZ + self.cfg.HZ_VARIATION
+
+        def hz2duration(hz, framerate):
+            return int(round(float(framerate) / hz))
+
+        def duration2hz(duration, framerate):
+            return int(round(float(framerate) / duration))
+
+        bit_nul_min_duration = hz2duration(bit_nul_max_hz, self.framerate)
+        bit_nul_max_duration = hz2duration(bit_nul_min_hz, self.framerate)
+
+        bit_one_min_duration = hz2duration(bit_one_max_hz, self.framerate)
+        bit_one_max_duration = hz2duration(bit_one_min_hz, self.framerate)
+
+        log.info(
+            "bit-0: %sHz - %sHz (%s-%sSamples) |  bit-1: %sHz - %sHz (%s-%sSamples)" % (
+            bit_nul_min_hz, bit_nul_max_hz, bit_nul_min_duration, bit_nul_max_duration,
+            bit_one_min_hz, bit_one_max_hz, bit_one_min_duration, bit_one_max_duration
+        ))
+        assert bit_nul_max_hz < bit_one_min_hz, "hz variation %sHz to big!" % (
+            ((bit_nul_max_hz - bit_one_min_hz) / 2) + 1
+        )
+
+        bit_count = 0
+        for duration in iter_duration_generator:
+#             if self.wave_pos > 500:
 #                 sys.exit()
 
-            hz = self.framerate / duration
-            if hz > self.bit_one_min_hz and hz < self.bit_one_max_hz:
+            if (bit_one_min_duration <= duration <= bit_one_max_duration):
+                hz = duration2hz(duration, self.framerate)
                 log.log(5,
-                    "bit 1 at %s in %sSamples = %sHz" % (frame_no, duration, hz)
+                    "bit 1 at %s in %sSamples = %sHz" % (self.wave_pos, duration, hz)
                 )
                 bit_count += 1
                 yield 1
@@ -237,9 +251,10 @@ class Wave2Bitstream(WaveBase):
                 if hz > one_hz_max:
                     one_hz_max = hz
                 one_hz_avg = average(one_hz_avg, hz, one_hz_count)
-            elif hz > self.bit_nul_min_hz and hz < self.bit_nul_max_hz:
+            elif (bit_nul_min_duration <= duration <= bit_nul_max_duration):
+                hz = duration2hz(duration, self.framerate)
                 log.log(5,
-                    "bit 0 at %s in %sSamples = %sHz" % (frame_no, duration, hz)
+                    "bit 0 at %s in %sSamples = %sHz" % (self.wave_pos, duration, hz)
                 )
                 bit_count += 1
                 yield 0
@@ -250,21 +265,24 @@ class Wave2Bitstream(WaveBase):
                     nul_hz_max = hz
                 nul_hz_avg = average(nul_hz_avg, hz, nul_hz_count)
             else:
-                log.log(5,
-                    "Skip signal at %s with %sSamples = %sHz" % (frame_no, duration, hz)
+                hz = duration2hz(duration, self.framerate)
+                log.log(10, # 5,
+                    "Skip signal at %s with %sHz (%sSamples) out of frequency range." % (
+                        self.wave_pos, hz, duration
+                    )
                 )
                 continue
 
             if time.time() > next_status:
                 next_status = time.time() + 1
-                _print_status(frame_no, bit_count)
+                _print_status(self.wave_pos, bit_count)
 
-        if frame_no == False:
+        if bit_count == 0:
             print "ERROR: No information from wave to generate the bits"
             print "trigger volume to high?"
             sys.exit(-1)
 
-        _print_status(frame_no, bit_count)
+        _print_status(self.wave_pos, bit_count)
         print
 
         log.info("\n%i Bits: %i positive bits and %i negative bits" % (
@@ -282,12 +300,12 @@ class Wave2Bitstream(WaveBase):
         """
         yield the duration of two frames in a row.
         """
-        old_frame_no = next(iter_trigger)
-        for frame_no in iter_trigger:
-            duration = frame_no - old_frame_no
-            yield (frame_no, duration)
-            old_frame_no = frame_no
-
+        old_pos = next(iter_trigger)
+        for pos in iter_trigger:
+            duration = pos - old_pos
+#             log.log(5, "Duration: %s" % duration)
+            yield duration
+            old_pos = pos
 
     def iter_trigger(self, iter_wave_values):
         """
@@ -324,6 +342,7 @@ class Wave2Bitstream(WaveBase):
                 count_sign(previous_values, 0),
                 count_sign(next_values, 0)
             ]
+#             log.log(5, "sign info: %s" % repr(sign_info))
             # yield the mid crossing
             if in_pos == False and sign_info == pos_null_transit:
                 log.log(5, "sinus curve goes from negative into positive")
@@ -337,28 +356,27 @@ class Wave2Bitstream(WaveBase):
                     yield mid_values[mid_index][0]
                 in_pos = False
 
-    def iter_avg_wave_values(self, wave_values_generator):
-        if self.avg_count == 3:
-            mid_index = 1
-        elif self.avg_count > 3:
-            mid_index = int(round(self.avg_count / 2.0))
-        else:
-            mid_index = 0
-        assert mid_index < self.avg_count
 
-        for value_tuples in iter_steps(wave_values_generator, self.avg_count):
-            # (frame_no, value) tuple -> value list
-            values = sum([i[1] for i in value_tuples]) / self.avg_count
-            try:
-                frame_no = value_tuples[mid_index][0]
-            except IndexError, err:
-                print "\nError getting %i from; %s: %s" % (mid_index, repr(value_tuples), err)
-                frame_no = value_tuples[0][0]
-            result = (frame_no, values)
-            if log.level >= 5:
-                log.log(5, "average %s samples to: %s" % (repr(value_tuples), repr(result)))
-#             print "average %s samples to: %s" % (repr(value_tuples), repr(result))
-            yield result
+    def iter_avg_wave_values(self, wave_values_generator, avg_count):
+        if log.level >= 5:
+            tlm = TextLevelMeter(self.max_value, 79)
+
+        for value_tuples in iter_steps(wave_values_generator, avg_count):
+            values = [i[1] for i in value_tuples]
+            avg_value = int(round(
+                float(sum(values)) / avg_count
+            ))
+            if tlm:
+                msg = tlm.feed(avg_value)
+                percent = 100.0 / self.max_value * abs(avg_value)
+                log.log(5,
+                    "%s average %s samples to: %s (%.1f%%)" % (
+                        msg,
+                        ",".join([str(v) for v in values]),
+                        avg_value, percent
+                    )
+                )
+            yield (self.wave_pos, avg_value)
 
     def iter_wave_values(self):
         """
@@ -366,7 +384,12 @@ class Wave2Bitstream(WaveBase):
         """
         typecode = self.get_typecode(self.samplewidth)
 
-        tlm = TextLevelMeter(self.max_value, 79)
+        if log.level >= 5:
+            if self.cfg.AVG_COUNT > 1:
+                # merge samples -> log output in iter_avg_wave_values
+                tlm = None
+            else:
+                tlm = TextLevelMeter(self.max_value, 79)
 
         # Use only a read size which is a quare divider of the samplewidth
         # Otherwise array.array will raise: ValueError: string length not a multiple of item size
@@ -414,23 +437,20 @@ class Wave2Bitstream(WaveBase):
                     # See: http://hg.python.org/cpython/file/482590320549/Modules/audioop.c#l957
                     value = value % 0xff - 128
 
-                if abs(value) < self.min_volume:
-                    # Ignore to lower amplitude
-                    skip_count += 1
-                    continue
+#                 if abs(value) < self.min_volume:
+# #                     log.log(5, "Ignore to lower amplitude")
+#                     skip_count += 1
+#                     continue
 
 
-                if log.level >= 5:
+                if tlm:
                     msg = tlm.feed(value)
                     percent = 100.0 / self.max_value * abs(value)
                     log.log(5,
                         "%s value: %i (%.1f%%)" % (msg, value, percent)
                     )
 
-                self.frame_no += 1 # Number of frames used for trigger
-#                 if self.frame_no > 100:sys.exit()
-#                 if self.frame_no > 4000:break
-                yield self.frame_no, value
+                yield (self.wave_pos, value)
 
         log.info("Skip %i samples that are lower than %i" % (
             skip_count, self.min_volume
@@ -504,14 +524,22 @@ if __name__ == "__main__":
     import sys, subprocess
 
     # bas -> wav
-#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-# #         "--log_format=%(module)s %(lineno)d: %(message)s",
-#         "../test_files/HelloWorld1.bas", "../test.wav"
-#     ])
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+        "../test_files/HelloWorld1.bas", "../test.wav"
+    ])
+
+#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--help"])
+#     sys.exit()
 
     # wav -> bas
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-        "--log_format=%(module)s %(lineno)d: %(message)s",
+    subprocess.Popen([sys.executable, "../PyDC_cli.py",
+        "--verbosity=10",
+#         "--verbosity=5",
+#         "--logfile=5",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "--avg_count=2",
         "../test.wav", "../test.bas",
+#         "../test_files/HelloWorld1 xroar.wav", "../test_files/HelloWorld1.bas",
 #         "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
     ])
