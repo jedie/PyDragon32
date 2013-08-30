@@ -11,12 +11,11 @@
 
 import argparse
 import logging
-import os
-import sys
 
 
 def get_log_levels():
-    levels = [level for level in logging._levelNames if isinstance(level, int)]
+    levels = [5] # FIXME
+    levels += [level for level in logging._levelNames if isinstance(level, int)]
     return levels
 
 LOG_LEVELS = get_log_levels()
@@ -48,14 +47,14 @@ class Base_CLI(object):
             "--verbosity", type=int, choices=LOG_LEVELS, default=logging.WARNING,
             help=(
                 "verbosity level to stdout (lower == more output!)"
-                " (default: %s)" % logging.WARNING
+                " (default: %s)" % logging.INFO
             )
         )
         self.parser.add_argument(
             "--logfile", type=int, choices=LOG_LEVELS, default=logging.INFO,
             help=(
                 "verbosity level to log file (lower == more output!)"
-                " (default: %s)" % logging.INFO
+                " (default: %s)" % logging.DEBUG
             )
         )
 

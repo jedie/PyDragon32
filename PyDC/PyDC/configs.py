@@ -13,6 +13,13 @@ import inspect
 
 
 class BaseConfig(object):
+    """ shared config values """
+
+    # For writing WAVE files:
+    FRAMERATE = 22050
+    SAMPLEWIDTH = 2 # 1 for 8-bit, 2 for 16-bit, 4 for 32-bit samples
+    VOLUME_RATIO = 90 # "Loundness" in percent of the created wave file
+
     def print_debug_info(self):
         from utils import byte2bit_string
 
@@ -35,6 +42,8 @@ class BaseConfig(object):
 
 class Dragon32Config(BaseConfig):
     """
+    Dragon 32 specific config values
+
     >>> d32cfg = Dragon32Config()
     >>> d32cfg.print_debug_info() # doctest: +NORMALIZE_WHITESPACE +ELLIPSIS
     Config: 'Dragon32Config'
@@ -63,6 +72,7 @@ class Dragon32Config(BaseConfig):
      SYNC_BYTE_CODEPOINT = 60   (in hex:  '0x3c' - binary: 00111100)
     """
 
+    # For reading WAVE files:
     BIT_NUL_HZ = 1200 # "0" is a single cycle at 1200 Hz
     BIT_ONE_HZ = 2400 # "1" is a single cycle at 2400 Hz
     HZ_VARIATION = 450 # How much Hz can signal scatter to match 1 or 0 bit ?
@@ -72,10 +82,13 @@ class Dragon32Config(BaseConfig):
     END_COUNT = 2 # Sample count that must be pos/neg at once
     MID_COUNT = 1 # Sample count that can be around null
 
+    # Format values:
     LEAD_BYTE_CODEPOINT = 0x55 # 10101010
     LEAD_BYTE_LEN = 255
     SYNC_BYTE_CODEPOINT = 0x3C # 00111100
     MAX_SYNC_BYTE_SEARCH = 600 # search size in **Bytes**
+
+    MAGIC_BYTE = 0x55 # 10101010
 
     # Block types:
     FILENAME_BLOCK = 0x00

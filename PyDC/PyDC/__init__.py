@@ -9,8 +9,10 @@
     :license: GNU GPL v3 or above, see LICENSE for more details.
 """
 
-from wave2bitstream import Wave2Bitstream
+from CassetteObjects import Cassette
 from PyDC import BitstreamHandler
+from wave2bitstream import Wave2Bitstream, Bitstream2Wave
+from utils import print_bitlist
 
 
 __version__ = (0, 1, 0, 'dev')
@@ -19,14 +21,18 @@ VERSION_STRING = '.'.join(str(part) for part in __version__)
 TITLE_LINE = "PyDC v%s copyleft 2013 by htfx.de - Jens Diemer, GNU GPL v3 or above" % VERSION_STRING
 
 
-def bas2wav(self):
-    raise NotImplementedError("TBD")
+def bas2wav(source_filepath, destination_filepath, cfg):
     # Create a bitstream from a existing .bas file:
-#     c.add_from_bas("test_files/HelloWorld1.bas")
-#     c.add_from_bas("test_files/Dragon Data Ltd - Examples from the Manual - 39~58 [run].bas")
-#     c.add_from_bas("test_files/LineNumberTest.bas")
-#     c.print_debug_info()
-#     bitstream = c.get_as_bitstream()
+
+    c = Cassette(cfg)
+
+    c.add_from_bas(source_filepath)
+    c.print_debug_info()
+    bitstream = c.get_as_bitstream()
+#     print_bitlist(bitstream)
+
+    bw = Bitstream2Wave(bitstream, cfg)
+    bw.write_wave(destination_filepath)
 
 
 def wav2bas(source_filepath, destination_filepath, cfg):
@@ -52,10 +58,16 @@ if __name__ == "__main__":
 
     from configs import Dragon32Config
     cfg = Dragon32Config()
-    wav2bas(
-        "../test_files/HelloWorld1 origin.wav",
-        "../HelloWorld1 origin.bas",
+
+#     wav2bas(
+#         "../test_files/HelloWorld1 origin.wav",
+#         "../HelloWorld1 origin.bas",
+#         cfg
+#     )
+
+    bas2wav(
+        "../test_files/HelloWorld1.bas",
+        "../HelloWorld1 created.wav",
         cfg
     )
-
     print "\n --- END ---"
