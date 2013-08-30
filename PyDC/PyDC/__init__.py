@@ -9,10 +9,11 @@
     :license: GNU GPL v3 or above, see LICENSE for more details.
 """
 
+
 from CassetteObjects import Cassette
-from PyDC import BitstreamHandler
-from wave2bitstream import Wave2Bitstream, Bitstream2Wave
+from PyDC.bitstream_handler import BitstreamHandler
 from utils import print_bitlist
+from wave2bitstream import Wave2Bitstream, Bitstream2Wave
 
 
 __version__ = (0, 1, 0, 'dev')
@@ -22,7 +23,9 @@ TITLE_LINE = "PyDC v%s copyleft 2013 by htfx.de - Jens Diemer, GNU GPL v3 or abo
 
 
 def bas2wav(source_filepath, destination_filepath, cfg):
-    # Create a bitstream from a existing .bas file:
+    """
+    Create a bitstream from a existing .bas file
+    """
 
     c = Cassette(cfg)
 
@@ -36,7 +39,9 @@ def bas2wav(source_filepath, destination_filepath, cfg):
 
 
 def wav2bas(source_filepath, destination_filepath, cfg):
-    # get bitstream generator from WAVE file:
+    """
+    get bitstream generator from WAVE file
+    """
     bitstream = iter(Wave2Bitstream(source_filepath, cfg))
 
     # store bitstream into python objects
@@ -49,25 +54,24 @@ def wav2bas(source_filepath, destination_filepath, cfg):
 
 
 if __name__ == "__main__":
-#     import doctest
-#     print doctest.testmod(
-#         verbose=False
-#         # verbose=True
-#     )
-    print TITLE_LINE
-
-    from configs import Dragon32Config
-    cfg = Dragon32Config()
-
-#     wav2bas(
-#         "../test_files/HelloWorld1 origin.wav",
-#         "../HelloWorld1 origin.bas",
-#         cfg
-#     )
-
-    bas2wav(
-        "../test_files/HelloWorld1.bas",
-        "../HelloWorld1 created.wav",
-        cfg
+    import doctest
+    print doctest.testmod(
+        verbose=False
+        # verbose=True
     )
-    print "\n --- END ---"
+
+    # test via CLI:
+
+    import sys, subprocess
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+        # bas -> wav
+        "../test_files/HelloWorld1.bas", "../test.wav"
+    ])
+
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+        # wav -> bas
+#         "../test.wav", "../test.bas",
+        "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
+    ])
+
+    print "-- END --"
