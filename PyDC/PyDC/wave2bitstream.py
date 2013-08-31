@@ -26,8 +26,7 @@ except ImportError, err:
 
 # own modules
 from utils import average, diff_info, TextLevelMeter, iter_window, \
-    human_duration, ProcessInfo, pformat_frame_no, \
-    count_sign, iter_steps, sinus_values_by_hz
+    human_duration, ProcessInfo, count_sign, iter_steps, sinus_values_by_hz
 
 
 log = logging.getLogger("PyDC")
@@ -131,6 +130,18 @@ class Wave2Bitstream(WaveBase):
             # trigger sinus cycle
             self.iter_trigger_generator = self.iter_trigger(self.wave_values_generator)
 
+    def _pformat_pos(self):
+        sec = float(self.wave_pos) / self.framerate
+        return "%s (frame no.: %s)" % (human_duration(sec), self.wave_pos)
+
+    def _print_status(self, process_info):
+        percent = float(self.wave_pos) / self.frame_count * 100
+        rest, eta, rate = process_info.update(self.wave_pos)
+        sys.stdout.write("\r%.1f%% wav pos:%s - eta: %s (rate: %iFrames/sec)       " % (
+            percent, self._pformat_pos(), eta, rate
+        ))
+        sys.stdout.flush()
+
     def analyze(self):
         """
         Example output:
@@ -188,7 +199,7 @@ class Wave2Bitstream(WaveBase):
             print "Error: no bits identified!"
             sys.exit(-1)
 
-        log.info("First bit is at: %s" % pformat_frame_no(self.wave_pos, self.framerate))
+        log.info("First bit is at: %s" % self._pformat_pos())
         log.debug("enable half sinus scan")
         self.half_sinus = True
 
@@ -234,17 +245,6 @@ class Wave2Bitstream(WaveBase):
         yield the bits
         """
         assert self.half_sinus == False # Allways trigger full sinus cycle
-
-        process_info = ProcessInfo(self.frame_count, use_last_rates=4)
-        start_time = time.time()
-        next_status = start_time + 0.25
-
-        def _print_status(frame_no, bit_count):
-            ms = float(frame_no) / self.framerate
-            rest, eta, rate = process_info.update(frame_no)
-            print "%i frames (wav pos:%s) get %iBits - eta: %s (rate: %iFrames/sec)" % (
-                frame_no, human_duration(ms), bit_count, eta, rate
-            )
 
         one_hz_count = 0
         one_hz_min = sys.maxint
@@ -320,17 +320,10 @@ class Wave2Bitstream(WaveBase):
                 )
                 continue
 
-            if time.time() > next_status:
-                next_status = time.time() + 1
-                _print_status(self.wave_pos, bit_count)
-
         if bit_count == 0:
             print "ERROR: No information from wave to generate the bits"
             print "trigger volume to high?"
             sys.exit(-1)
-
-        _print_status(self.wave_pos, bit_count)
-        print
 
         log.info("\n%i Bits: %i positive bits and %i negative bits" % (
             bit_count, one_hz_count, nul_hz_count
@@ -347,12 +340,24 @@ class Wave2Bitstream(WaveBase):
         """
         yield the duration of two frames in a row.
         """
+        print
+        process_info = ProcessInfo(self.frame_count, use_last_rates=4)
+        start_time = time.time()
+        next_status = start_time + 0.25
+
         old_pos = next(iter_trigger)
         for pos in iter_trigger:
             duration = pos - old_pos
 #             log.log(5, "Duration: %s" % duration)
             yield duration
             old_pos = pos
+
+            if time.time() > next_status:
+                next_status = time.time() + 1
+                self._print_status(process_info)
+
+        self._print_status(process_info)
+        print
 
     def iter_trigger(self, iter_wave_values):
         """
@@ -502,7 +507,7 @@ class Wave2Bitstream(WaveBase):
         log.info("Skip %i samples that are lower than %i" % (
             skip_count, self.min_volume
         ))
-        log.info("Last readed Frame is: %s" % pformat_frame_no(self.wave_pos, self.framerate))
+        log.info("Last readed Frame is: %s" % self._pformat_pos())
 
 
 class Bitstream2Wave(WaveBase):
@@ -576,8 +581,8 @@ if __name__ == "__main__":
     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
 #         "--log_format=%(module)s %(lineno)d: %(message)s",
         "--analyze",
-        "../test_files/HelloWorld1 xroar.wav"
-#         "../test_files/HelloWorld1 origin.wav"
+#         "../test_files/HelloWorld1 xroar.wav"
+        "../test_files/HelloWorld1 origin.wav"
     ])
     sys.exit()
 
