@@ -53,6 +53,14 @@ HUMAN_SAMPLEWIDTH = {
 }
 
 
+
+def hz2duration(hz, framerate):
+    return int(round(float(framerate) / hz))
+
+def duration2hz(duration, framerate):
+    return int(round(float(framerate) / duration))
+
+
 class WaveBase(object):
     def get_typecode(self, samplewidth):
         try:
@@ -123,13 +131,50 @@ class Wave2Bitstream(WaveBase):
             # trigger sinus cycle
             self.iter_trigger_generator = self.iter_trigger(self.wave_values_generator)
 
-        # duration of a complete sinus cycle
-        self.iter_duration_generator = self.iter_duration(self.iter_trigger_generator)
+    def analyze(self):
+        """
+        Example output:
 
-#         self.auto_sync_duration_generator = self.auto_sync_duration(self.iter_duration_generator)
+          394Hz (   28 Samples) exist:    1
+          613Hz (   18 Samples) exist:    1
+          788Hz (   14 Samples) exist:    1
+          919Hz (   12 Samples) exist:  329 *********
+         1002Hz (   11 Samples) exist: 1704 **********************************************
+         1103Hz (   10 Samples) exist: 1256 **********************************
+         1225Hz (    9 Samples) exist: 1743 ***********************************************
+         1378Hz (    8 Samples) exist:    1
+         1575Hz (    7 Samples) exist:  322 *********
+         1838Hz (    6 Samples) exist: 1851 **************************************************
+         2205Hz (    5 Samples) exist: 1397 **************************************
+         2756Hz (    4 Samples) exist:  913 *************************
+        """
+        statistics = {}
+        log.debug("enable half sinus scan")
+        self.half_sinus = True
+        iter_duration_generator = self.iter_duration(self.iter_trigger_generator)
+        for duration in iter_duration_generator:
+            try:
+                statistics[duration] += 1
+            except KeyError:
+                statistics[duration] = 1
 
-        # build from sinus cycle duration the bit stream
-        self.iter_bitstream_generator = self.iter_bitstream(self.iter_duration_generator)
+        width = 50
+        max_count = max(statistics.values())
+
+        print
+        print "Found this zeror crossing timings in the wave file:"
+        print
+
+        for duration, count in sorted(statistics.items(), reverse=True):
+            hz = duration2hz(duration, self.framerate / 2)
+            w = int(round(float(width) / max_count * count))
+            stars = "*"*w
+            print "%5sHz (%5s Samples) exist: %4s %s" % (hz, duration, count, stars)
+
+        print
+        print "Notes:"
+        print " - Hz values are converted to full sinus cycle duration."
+        print " - Sample cound is from half sinus cycle."
 
     def sync(self, length):
         """
@@ -170,6 +215,14 @@ class Wave2Bitstream(WaveBase):
         log.debug("disable half sinus scan")
 
     def __iter__(self):
+        # duration of a complete sinus cycle
+        self.iter_duration_generator = self.iter_duration(self.iter_trigger_generator)
+
+#         self.auto_sync_duration_generator = self.auto_sync_duration(self.iter_duration_generator)
+
+        # build from sinus cycle duration the bit stream
+        self.iter_bitstream_generator = self.iter_bitstream(self.iter_duration_generator)
+
         return self
 
     def next(self):
@@ -211,12 +264,6 @@ class Wave2Bitstream(WaveBase):
 
         bit_one_min_hz = self.cfg.BIT_ONE_HZ - self.cfg.HZ_VARIATION
         bit_one_max_hz = self.cfg.BIT_ONE_HZ + self.cfg.HZ_VARIATION
-
-        def hz2duration(hz, framerate):
-            return int(round(float(framerate) / hz))
-
-        def duration2hz(duration, framerate):
-            return int(round(float(framerate) / duration))
 
         bit_nul_min_duration = hz2duration(bit_nul_max_hz, self.framerate)
         bit_nul_max_duration = hz2duration(bit_nul_min_hz, self.framerate)
@@ -266,7 +313,7 @@ class Wave2Bitstream(WaveBase):
                 nul_hz_avg = average(nul_hz_avg, hz, nul_hz_count)
             else:
                 hz = duration2hz(duration, self.framerate)
-                log.log(10, # 5,
+                log.log(7,
                     "Skip signal at %s with %sHz (%sSamples) out of frequency range." % (
                         self.wave_pos, hz, duration
                     )
@@ -523,10 +570,22 @@ if __name__ == "__main__":
 
     import sys, subprocess
 
+#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--help"])
+#     sys.exit()
+
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+        "--analyze",
+        "../test_files/HelloWorld1 xroar.wav"
+#         "../test_files/HelloWorld1 origin.wav"
+    ])
+    sys.exit()
+
     # bas -> wav
     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
 #         "--log_format=%(module)s %(lineno)d: %(message)s",
-        "../test_files/HelloWorld1.bas", "../test.wav"
+        "../test_files/HelloWorld1.bas",
+        "--dst=../test.wav"
     ])
 
 #     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--help"])
@@ -539,7 +598,7 @@ if __name__ == "__main__":
 #         "--logfile=5",
 #         "--log_format=%(module)s %(lineno)d: %(message)s",
 #         "--avg_count=2",
-        "../test.wav", "../test.bas",
-#         "../test_files/HelloWorld1 xroar.wav", "../test_files/HelloWorld1.bas",
-#         "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
+        "../test.wav", "--dst=../test.bas",
+#         "../test_files/HelloWorld1 xroar.wav", "--dst=../test_files/HelloWorld1.bas",
+#         "../test_files/HelloWorld1 origin.wav", "--dst=../test_files/HelloWorld1.bas",
     ])
