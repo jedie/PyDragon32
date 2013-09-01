@@ -17,15 +17,15 @@ class BaseConfig(object):
 
     # For writing WAVE files:
     FRAMERATE = 44100
-    SAMPLEWIDTH = 2 # 1 for 8-bit, 2 for 16-bit, 4 for 32-bit samples
-    VOLUME_RATIO = 90 # "Loundness" in percent of the created wave file
+    SAMPLEWIDTH = 2  # 1 for 8-bit, 2 for 16-bit, 4 for 32-bit samples
+    VOLUME_RATIO = 90  # "Loundness" in percent of the created wave file
 
     def print_debug_info(self):
         from utils import byte2bit_string
 
         print "Config: '%s'" % self.__class__.__name__
 
-        for name, value in inspect.getmembers(self): # , inspect.isdatadescriptor):
+        for name, value in inspect.getmembers(self):  # , inspect.isdatadescriptor):
             if name.startswith("_"):
                 continue
 #             print name, type(value)
@@ -73,24 +73,23 @@ class Dragon32Config(BaseConfig):
     """
 
     # For reading WAVE files:
-    BIT_NUL_HZ = 1200 # "0" is a single cycle at 1200 Hz
-    BIT_ONE_HZ = 2400 # "1" is a single cycle at 2400 Hz
+    BIT_NUL_HZ = 1050  # Spec says: 1200Hz - Bit "0" is a single cycle at 1200 Hz
+    BIT_ONE_HZ = 2000  # Spec says: 2400Hz - Bit "1" is a single cycle at 2400 Hz
     # see: http://five.pairlist.net/pipermail/coco/2013-August/070879.html
-    HZ_DRIFT = -200 # offset for ground signal
-    HZ_VARIATION = 500 # How much Hz can signal scatter to match 1 or 0 bit ?
+    HZ_VARIATION = 500  # How much Hz can signal scatter to match 1 or 0 bit ?
 
-    MIN_VOLUME_RATIO = 5 # percent volume to ignore sample
-    AVG_COUNT = 0 # How many samples should be merged into a average value?
-    END_COUNT = 2 # Sample count that must be pos/neg at once
-    MID_COUNT = 1 # Sample count that can be around null
+    MIN_VOLUME_RATIO = 5  # percent volume to ignore sample
+    AVG_COUNT = 0  # How many samples should be merged into a average value?
+    END_COUNT = 2  # Sample count that must be pos/neg at once
+    MID_COUNT = 1  # Sample count that can be around null
 
     # Format values:
-    LEAD_BYTE_CODEPOINT = 0x55 # 10101010
+    LEAD_BYTE_CODEPOINT = 0x55  # 10101010
     LEAD_BYTE_LEN = 255
-    SYNC_BYTE_CODEPOINT = 0x3C # 00111100
-    MAX_SYNC_BYTE_SEARCH = 600 # search size in **Bytes**
+    SYNC_BYTE_CODEPOINT = 0x3C  # 00111100
+    MAX_SYNC_BYTE_SEARCH = 600  # search size in **Bytes**
 
-    MAGIC_BYTE = 0x55 # 10101010
+    MAGIC_BYTE = 0x55  # 10101010
 
     # Block types:
     FILENAME_BLOCK = 0x00
@@ -120,7 +119,7 @@ class Dragon32Config(BaseConfig):
         BASIC_ASCII:"ASCII BASIC (0xff)",
     }
 
-    BASIC_CODE_END = [0x00, 0x00] # Mark the end of the code
+    BASIC_CODE_END = [0x00, 0x00]  # Mark the end of the code
 
 
 
@@ -137,14 +136,16 @@ if __name__ == "__main__":
     import sys, subprocess
 
     # bas -> wav
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-#         "--log_format=%(module)s %(lineno)d: %(message)s",
-        "../test_files/HelloWorld1.bas", "../test.wav"
-    ])
+#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+# #         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "../test_files/HelloWorld1.bas", "../test.wav"
+#     ]).wait()
 
     # wav -> bas
     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
 #         "--log_format=%(module)s %(lineno)d: %(message)s",
-        "../test.wav", "../test.bas",
-#         "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
-    ])
+#         "../test.wav", "../test.bas",
+#         "../test_files/HelloWorld1 xroar.wav", "--dst=../test_files/HelloWorld1.bas",
+        "../test_files/HelloWorld1 origin.wav", "--dst=../test_files/HelloWorld1.bas",
+    ]).wait()
+

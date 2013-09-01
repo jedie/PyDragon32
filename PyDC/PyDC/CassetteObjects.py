@@ -513,16 +513,17 @@ if __name__ == "__main__":
     import sys, subprocess
 
     # bas -> wav
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-#         "--log_format=%(module)s %(lineno)d: %(message)s",
-        "../test_files/HelloWorld1.bas", "../test.wav"
-    ])
+#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+# #         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "../test_files/HelloWorld1.bas", "../test.wav"
+#     ]).wait()
 
     # wav -> bas
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+    subprocess.Popen([sys.executable, "../PyDC_cli.py",
+        "--verbosity=10",
 #         "--log_format=%(module)s %(lineno)d: %(message)s",
 #         "../test.wav", "../test.bas",
-        "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
-    ])
-
+        "../test_files/HelloWorld1 xroar.wav", "--dst=../test_files/HelloWorld1.bas",
+#         "../test_files/HelloWorld1 origin.wav", "--dst=../test_files/HelloWorld1.bas",
+    ]).wait()
 
