@@ -120,11 +120,19 @@ class TestDragon32Conversion(unittest.TestCase):
 if __name__ == '__main__':
     log = logging.getLogger("PyDC")
     log.setLevel(
-        #~ logging.WARNING
-        logging.DEBUG
+        logging.ERROR
+#         logging.WARNING
+#         logging.DEBUG
     )
     log.addHandler(logging.StreamHandler())
 
-    #~ sys.argv.append("TestDragon32Conversion.test_wav2bas01")
-    #~ sys.argv.append("TestDragon32Conversion.test_wav2bas04")
-    unittest.main()
+    unittest.main(
+        argv=(
+            sys.argv[0],
+#             "TestDragon32Conversion.test_wav2bas01",
+#             "TestDragon32Conversion.test_wav2bas04",
+        ),
+#         verbosity=1,
+        verbosity=2,
+        failfast=True,
+    )

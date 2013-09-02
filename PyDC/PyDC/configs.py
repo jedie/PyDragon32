@@ -73,8 +73,8 @@ class Dragon32Config(BaseConfig):
     """
 
     # For reading WAVE files:
-    BIT_NUL_HZ = 1050  # Spec says: 1200Hz - Bit "0" is a single cycle at 1200 Hz
-    BIT_ONE_HZ = 2000  # Spec says: 2400Hz - Bit "1" is a single cycle at 2400 Hz
+    BIT_NUL_HZ = 1100 # Spec says: 1200Hz - Bit "0" is a single cycle at 1200 Hz
+    BIT_ONE_HZ = 2100 # Spec says: 2400Hz - Bit "1" is a single cycle at 2400 Hz
     # see: http://five.pairlist.net/pipermail/coco/2013-August/070879.html
     HZ_VARIATION = 450 # How much Hz can signal scatter to match 1 or 0 bit ?
 
@@ -119,7 +119,7 @@ class Dragon32Config(BaseConfig):
         BASIC_ASCII:"ASCII BASIC (0xff)",
     }
 
-    BASIC_CODE_END = [0x00, 0x00]  # Mark the end of the code
+    BASIC_CODE_END = [0x00, 0x00] # Mark the end of the code
 
 
 
@@ -130,22 +130,3 @@ if __name__ == "__main__":
         verbose=False
         # verbose=True
     )
-
-    # test via CLI:
-
-    import sys, subprocess
-
-    # bas -> wav
-#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-# #         "--log_format=%(module)s %(lineno)d: %(message)s",
-#         "../test_files/HelloWorld1.bas", "../test.wav"
-#     ]).wait()
-
-    # wav -> bas
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-#         "--log_format=%(module)s %(lineno)d: %(message)s",
-#         "../test.wav", "../test.bas",
-#         "../test_files/HelloWorld1 xroar.wav", "--dst=../test_files/HelloWorld1.bas",
-        "../test_files/HelloWorld1 origin.wav", "--dst=../test_files/HelloWorld1.bas",
-    ]).wait()
-
