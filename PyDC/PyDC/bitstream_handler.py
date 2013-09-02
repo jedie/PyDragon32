@@ -33,7 +33,7 @@ from utils import find_iter_window, iter_steps, MaxPosArraived, \
 from wave2bitstream import Wave2Bitstream
 
 
-DISPLAY_BLOCK_COUNT = 8 # How many bit block should be printet in one line?
+DISPLAY_BLOCK_COUNT = 8  # How many bit block should be printet in one line?
 
 MIN_SAMPLE_VALUE = 5
 
@@ -123,7 +123,7 @@ class BitstreamHandler(object):
             print "*** block type: 0x%x (%s)" % (block_type, block_type_name)
 
             if block_type == self.cfg.EOF_BLOCK:
-                print "EOF-Block found"
+                log.info("EOF-Block found")
                 break
 
             if block_length == 0:
@@ -138,10 +138,12 @@ class BitstreamHandler(object):
             print "="*79
 
     def sync_bitstream(self, bitstream):
-        bitstream.sync(32) # Sync bitstream to wave sinus cycle
+        bitstream.sync(128)  # Sync bitstream to wave sinus cycle
 
 #         test_bitstream = list(itertools.islice(bitstream, 258 * 8))
+#         test_bitstream = bitstream
 #         print_bitlist(test_bitstream)
+#         sys.exit()
 
         # Searching for lead-in byte
         lead_in_pattern = list(codepoints2bitstream(self.cfg.LEAD_BYTE_CODEPOINT))
@@ -187,9 +189,8 @@ class BitstreamHandler(object):
                 sync_pos
             ))
 
-
     def get_block_info(self, bitstream):
-        self.sync_bitstream(bitstream) # Sync bitstream with SYNC_BYTE
+        self.sync_bitstream(bitstream)  # Sync bitstream with SYNC_BYTE
 
         # convert the raw bitstream to codepoint stream
         codepoint_stream = bitstream2codepoints(bitstream)
@@ -224,6 +225,14 @@ class BitstreamHandler(object):
                 hex(origin_checksum), hex(calc_checksum)
             ))
 
+        # Check if the magic byte exists
+
+        magic_byte = next(codepoint_stream)
+        if magic_byte != self.cfg.MAGIC_BYTE:
+            log.error("Magic Byte %s is not %s" % (hex(magic_byte), hex(self.cfg.MAGIC_BYTE)))
+        else:
+            log.info("Magic Byte %s, ok." % hex(magic_byte))
+
         return block_type, block_length, codepoints
 
 
@@ -252,24 +261,26 @@ def print_bit_list_stats(bit_list):
 
 
 if __name__ == "__main__":
-#     import doctest
-#     print doctest.testmod(
-#         verbose=False
-#         # verbose=True
-#     )
+    import doctest
+    print doctest.testmod(
+        verbose=False
+        # verbose=True
+    )
 
-    import sys, time, subprocess
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-        # bas -> wav
-        "../test_files/HelloWorld1.bas", "../test.wav"
-    ])
-    sys.stderr.flush()
-    sys.stdout.flush()
-    print "="*79
-    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
-        # wav -> bas
-        "../test.wav", "../test.bas",
-#         "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
-    ])
+    # test via CLI:
 
-    print "-- END --"
+    import sys, subprocess
+
+    # bas -> wav
+#     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+# #         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "../test_files/HelloWorld1.bas", "../test.wav"
+#     ]).wait()
+
+    # wav -> bas
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "../test.wav", "../test.bas",
+        "../test_files/HelloWorld1 xroar.wav", "--dst=../test_files/HelloWorld1.bas",
+#         "../test_files/HelloWorld1 origin.wav", "--dst=../test_files/HelloWorld1.bas",
+    ]).wait()

@@ -11,10 +11,11 @@
 
 import argparse
 import logging
+import sys
 
 
 def get_log_levels():
-    levels = [5] # FIXME
+    levels = [5, 7] # FIXME
     levels += [level for level in logging._levelNames if isinstance(level, int)]
     return levels
 
@@ -26,11 +27,10 @@ class Base_CLI(object):
     DESCRIPTION = None
     EPOLOG = None
     VERSION = None
-    LOG_FORMATTER = logging.Formatter("%(asctime)s %(message)s")
+    DEFAULT_LOG_FORMATTER = "%(message)s"
 
     def __init__(self):
         self.logfilename = None
-        print "logger name:", self.LOG_NAME
         self.log = logging.getLogger(self.LOG_NAME)
 
         arg_kwargs = {}
@@ -57,49 +57,52 @@ class Base_CLI(object):
                 " (default: %s)" % logging.DEBUG
             )
         )
+        self.parser.add_argument(
+            "--log_format", default=self.DEFAULT_LOG_FORMATTER,
+            help=(
+                "see: http://docs.python.org/2/library/logging.html#logrecord-attributes"
+            )
+        )
 
     def parse_args(self):
         if self.DESCRIPTION is not None:
             print
-            print self.DESCRIPTION
+            print self.DESCRIPTION, self.VERSION
             print "-"*79
             print
 
         args = self.parser.parse_args()
-
-        for arg, value in sorted(vars(args).items()):
-            self.log.debug("argument %s: %r", arg, value)
-
         return args
 
     def setup_logging(self, args):
         self.verbosity = args.verbosity
         self.logfile = args.logfile
 
-        verbosity_level_name = logging.getLevelName(self.verbosity)
-
-        logfile_level_name = logging.getLevelName(self.logfile)
-
-        highest_level = min([self.logfile, self.verbosity])
-        print "set log level to:", highest_level
-        self.log.setLevel(highest_level)
+        formatter = logging.Formatter(args.log_format)
 
         if self.logfile > 0 and self.logfilename:
             handler = logging.FileHandler(self.logfilename, mode='w', encoding="utf8")
-#             handler.set_level(self.logfile)
             handler.level = self.logfile
-            handler.setFormatter(self.LOG_FORMATTER)
+            handler.setFormatter(formatter)
             self.log.addHandler(handler)
 
         if self.verbosity > 0:
             handler = logging.StreamHandler()
-#             handler.set_level(self.verbosity)
             handler.level = self.verbosity
-            handler.setFormatter(self.LOG_FORMATTER)
+            handler.setFormatter(formatter)
             self.log.addHandler(handler)
 
+        highest_level = min([self.logfile, self.verbosity])
+        self.log.setLevel(highest_level)
+
+        self.log.debug(" ".join(sys.argv))
+
+        verbosity_level_name = logging.getLevelName(self.verbosity)
         self.log.info("Verbosity log level: %s" % verbosity_level_name)
+
+        logfile_level_name = logging.getLevelName(self.logfile)
         self.log.info("logfile log level: %s" % logfile_level_name)
+
 
 if __name__ == "__main__":
     import doctest
@@ -107,3 +110,20 @@ if __name__ == "__main__":
         verbose=False
         # verbose=True
     )
+
+    # test via CLI:
+
+    import sys, subprocess
+
+    # bas -> wav
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+        "../test_files/HelloWorld1.bas", "../test.wav"
+    ])
+
+    # wav -> bas
+    subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",
+#         "--log_format=%(module)s %(lineno)d: %(message)s",
+#         "../test.wav", "../test.bas",
+        "../test_files/HelloWorld1 origin.wav", "../test_files/HelloWorld1.bas",
+    ])
