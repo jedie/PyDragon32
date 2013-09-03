@@ -33,7 +33,7 @@ from utils import find_iter_window, iter_steps, MaxPosArraived, \
 from wave2bitstream import Wave2Bitstream
 
 
-DISPLAY_BLOCK_COUNT = 8  # How many bit block should be printet in one line?
+DISPLAY_BLOCK_COUNT = 8 # How many bit block should be printet in one line?
 
 MIN_SAMPLE_VALUE = 5
 
@@ -138,12 +138,10 @@ class BitstreamHandler(object):
             print "="*79
 
     def sync_bitstream(self, bitstream):
-        bitstream.sync(128)  # Sync bitstream to wave sinus cycle
+        bitstream.sync(32) # Sync bitstream to wave sinus cycle
 
 #         test_bitstream = list(itertools.islice(bitstream, 258 * 8))
-#         test_bitstream = bitstream
 #         print_bitlist(test_bitstream)
-#         sys.exit()
 
         # Searching for lead-in byte
         lead_in_pattern = list(codepoints2bitstream(self.cfg.LEAD_BYTE_CODEPOINT))
@@ -189,8 +187,9 @@ class BitstreamHandler(object):
                 sync_pos
             ))
 
+
     def get_block_info(self, bitstream):
-        self.sync_bitstream(bitstream)  # Sync bitstream with SYNC_BYTE
+        self.sync_bitstream(bitstream) # Sync bitstream with SYNC_BYTE
 
         # convert the raw bitstream to codepoint stream
         codepoint_stream = bitstream2codepoints(bitstream)
@@ -259,17 +258,16 @@ def print_bit_list_stats(bit_list):
     print "%i positive bits and %i negative bits" % (positive_count, negative_count)
 
 
-
 if __name__ == "__main__":
     import doctest
     print doctest.testmod(
         verbose=False
         # verbose=True
     )
+#     sys.exit()
 
     # test via CLI:
 
-    import sys, subprocess
 
     # bas -> wav
 #     subprocess.Popen([sys.executable, "../PyDC_cli.py", "--verbosity=10",

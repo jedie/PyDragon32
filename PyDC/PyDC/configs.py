@@ -25,7 +25,7 @@ class BaseConfig(object):
 
         print "Config: '%s'" % self.__class__.__name__
 
-        for name, value in inspect.getmembers(self):  # , inspect.isdatadescriptor):
+        for name, value in inspect.getmembers(self): # , inspect.isdatadescriptor):
             if name.startswith("_"):
                 continue
 #             print name, type(value)
@@ -78,18 +78,17 @@ class Dragon32Config(BaseConfig):
     # see: http://five.pairlist.net/pipermail/coco/2013-August/070879.html
     HZ_VARIATION = 450 # How much Hz can signal scatter to match 1 or 0 bit ?
 
-    MIN_VOLUME_RATIO = 5  # percent volume to ignore sample
-    AVG_COUNT = 0  # How many samples should be merged into a average value?
-    END_COUNT = 2  # Sample count that must be pos/neg at once
-    MID_COUNT = 1  # Sample count that can be around null
+    MIN_VOLUME_RATIO = 5 # percent volume to ignore sample
+    AVG_COUNT = 0 # How many samples should be merged into a average value?
+    END_COUNT = 2 # Sample count that must be pos/neg at once
+    MID_COUNT = 1 # Sample count that can be around null
 
     # Format values:
     LEAD_BYTE_CODEPOINT = 0x55  # 10101010
     LEAD_BYTE_LEN = 255
-    SYNC_BYTE_CODEPOINT = 0x3C  # 00111100
-    MAX_SYNC_BYTE_SEARCH = 600  # search size in **Bytes**
-
-    MAGIC_BYTE = 0x55  # 10101010
+    SYNC_BYTE_CODEPOINT = 0x3C # 00111100
+    MAGIC_BYTE = 0x55 # 10101010
+    MAX_SYNC_BYTE_SEARCH = 600 # search size in **Bytes**
 
     # Block types:
     FILENAME_BLOCK = 0x00
